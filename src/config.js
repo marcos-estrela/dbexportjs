@@ -25,7 +25,7 @@ const loadConfig = () => {
   }else if(fs.existsSync(envFile)){
     loadEnvConfig(envFile)
   }else{
-    throw new Error(`One of this files should be exists: ${file} | ${ENV_FILE}`)
+    throw new Error(`One of this files should be exists: ${jsonFile} | ${envFile}`)
   }
 }
 
