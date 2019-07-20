@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const ExportDb = require('./index')
 
 const driver = process.env.DB_DRIVER

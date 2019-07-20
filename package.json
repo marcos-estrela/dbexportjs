@@ -11,7 +11,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "db:export": "node ./src/cmd.js",
+    "db:export": "node ./src/cli.js",
+    "npm:publish": "npm publish --access public",
     "test": "mocha"
   },
   "repository": {
@@ -29,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/SimplesVet/dbexportjs/issues"
   },
-  "homepage": "https://github.com/SimplesVet/dbexportjs#readme"
+  "homepage": "https://github.com/SimplesVet/dbexportjs#readme",
+  "bin": {
+    "dbexport": "./src/cli.js"
+  }
 }
