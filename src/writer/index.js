@@ -13,6 +13,17 @@ const saveDbObjects = async (objectType, objectsList) => {
   }
 }
 
+const makeDir = (dirName) => {
+  try{
+    if(!fs.existsSync(dirName)){
+      fs.mkdirSync(dirName, {recursive: true});
+    }
+    return true;
+  }catch(err) {
+    return false;
+  }
+}
+
 const write = (dirName, fileName, fileContent) => {
   const path = `${dirName}/${fileName}`
 
@@ -21,7 +32,7 @@ const write = (dirName, fileName, fileContent) => {
     let fullPath = '.'
     dirParts.forEach(part => {
       fullPath = `${fullPath}/${part}`
-      fs.mkdirSync(fullPath, {recursive: true});
+      makeDir(fullPath)
     })
   }
 

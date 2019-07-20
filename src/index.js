@@ -50,6 +50,7 @@ class ExportDb {
   }
 
   async getAll () {
+    await this.getProcedures()
     await this.getFunctions()
     await this.getTriggers()
     await this.getViews()
