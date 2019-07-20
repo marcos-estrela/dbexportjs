@@ -1,0 +1,31 @@
+{
+  "name": "dbexportjs",
+  "version": "1.0.0",
+  "description": "Pacote exportar de forma fácil os objetos do seu banco de dados.",
+  "main": "src/index.js",
+  "dependencies": {
+    "dotenv": "^8.0.0",
+    "mocha": "^6.2.0",
+    "mysql": "^2.17.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimplesVet/dbexportjs.git"
+  },
+  "keywords": [
+    "mysql",
+    "database",
+    "export",
+    "db"
+  ],
+  "author": "George Moura <gwmoura@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SimplesVet/dbexportjs/issues"
+  },
+  "homepage": "https://github.com/SimplesVet/dbexportjs#readme"
+}
