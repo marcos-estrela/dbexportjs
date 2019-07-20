@@ -2,7 +2,7 @@
   "name": "dbexportjs",
   "version": "1.0.0",
   "description": "Pacote exportar de forma fácil os objetos do seu banco de dados.",
-  "main": "src/index.js",
+  "main": "src/cmd.js",
   "dependencies": {
     "chai": "^4.2.0",
     "dotenv": "^8.0.0",
