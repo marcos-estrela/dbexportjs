@@ -218,6 +218,7 @@ ALTER EVENT ${name}
 }
 
 module.exports = {
+  executeQuery,
   getProcedures,
   getFunctions,
   getTriggers,
