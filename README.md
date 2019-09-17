@@ -1,2 +1,2 @@
 # dbexport
-Pacote exportar de forma fácil os objetos do seu banco de dados.
+Pacote para exportar e sincronizar de forma fácil os objetos do seu banco de dados.
