@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { watch } = require('gulp');
-const DbSync = require('./sync')
+const DbSync = require('../sync')
 
 const watcher = watch(['export/**/*.sql', '!export/tables/*']);
 const sync = new DbSync('mysql')

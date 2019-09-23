@@ -16,6 +16,7 @@ class DbSync {
     try{
       const content = await this.getContentFromFile(fileName)
       if(content !== ''){
+        content = this.addDropQueryIfNotExists(content);
         this.commit(content)
       }
     }catch(err){
@@ -30,6 +31,29 @@ class DbSync {
           resolve(content)
         })
     })
+  }
+
+  async addDropQueryIfNotExists(content) {
+    let lines = content.split('\n')
+    let header = lines[0]
+    let coluns = header.split('(')[0].split(' ')
+    let objParts = {
+        actionPos: 0,
+        typePos: 1,
+        namePos: 2
+    }
+    let newHeader = ''
+
+    if(coluns[objParts.actionPos].toLowerCase() !== 'drop') {
+        let objType = coluns[objParts.typePos]
+        let objName = coluns[objParts.namePos]
+        if(!header.includes('view')){
+            newHeader = `DROP ${objType} IF EXISTS ${objName};\n\n`
+        }
+    }
+
+    content = `${newHeader}${content};\n`
+    return content
   }
 
   async commit(query) {

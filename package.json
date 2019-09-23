@@ -1,6 +1,6 @@
 {
   "name": "dbexportjs",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Pacote para exportar sincronizar de forma fácil os objetos do seu banco de dados.",
   "main": "src/cmd.js",
   "dependencies": {
@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/SimplesVet/dbexportjs#readme",
   "bin": {
-    "dbexport": "./src/cli.js",
-    "dbsync": "./src/sync-cli.js"
+    "dbexport": "./src/cli/dbexport.js",
+    "dbsync": "./src/cli/dbsync.js"
   }
 }

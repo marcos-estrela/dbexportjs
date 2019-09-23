@@ -13,38 +13,38 @@ class ExportDb {
     }
   }
 
-  async getProcedures() {
-    const procedures = await this.adapter.getProcedures()
+  async getProcedures(name) {
+    const procedures = await this.adapter.getProcedures(name)
     writer.saveDbObjects('procedures', procedures)
     return procedures
   }
 
-  async getFunctions() {
-    const functions = this.adapter.getFunctions()
+  async getFunctions(name) {
+    const functions = this.adapter.getFunctions(name)
     writer.saveDbObjects('functions', functions)
     return functions
   }
 
-  async getTriggers() {
-    const triggers = this.adapter.getTriggers()
+  async getTriggers(name) {
+    const triggers = this.adapter.getTriggers(name)
     writer.saveDbObjects('triggers', triggers)
     return triggers
   }
 
-  async getViews() {
-    const views = this.adapter.getViews()
+  async getViews(name) {
+    const views = this.adapter.getViews(name)
     writer.saveDbObjects('views', views)
     return views
   }
 
-  async getTables() {
-    const tables = this.adapter.getTables()
+  async getTables(name) {
+    const tables = this.adapter.getTables(name)
     writer.saveDbObjects('tables', tables)
     return tables
   }
 
-  async getEvents() {
-    const events = this.adapter.getEvents()
+  async getEvents(name) {
+    const events = this.adapter.getEvents(name)
     writer.saveDbObjects('events', events)
     return events
   }

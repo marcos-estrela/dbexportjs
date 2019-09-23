@@ -39,12 +39,20 @@ const getParameters = async (objectName, objectType) => {
   }
 }
 
-const getTables = async () => {
-  const sql = `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = ? AND TABLE_SCHEMA = ?`
+const getTables = async (tableName) => {
+  let whereTableName = '';
+  if(tableName) {
+    whereTableName = `AND TABLE_NAME = ?`
+  }
+  const sql = `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = ? AND TABLE_SCHEMA = ? ${whereTableName}`
 
   try {
     let tables = []
-    const results = await executeQuery(sql, ['BASE TABLE', database])
+    let params = ['BASE TABLE', database]
+    if(tableName){
+      params.push(tableName)
+    }
+    const results = await executeQuery(sql, params)
     tables = await results.map(async result => {
       const name = result['TABLE_NAME']
       const tableResult = await executeQuery(`SHOW CREATE TABLE ${name}`)
@@ -60,15 +68,24 @@ const getTables = async () => {
   }
 }
 
-const getFunctions = async () => {
+const getFunctions = async (functionName) => {
+  let whereFunctionName = ''
+  if(functionName){
+    whereFunctionName = 'AND ROUTINE_NAME = ?'
+  }
   const sql = `SELECT ROUTINE_NAME, ROUTINE_TYPE, ROUTINE_DEFINITION, ROUTINE_COMMENT, DTD_IDENTIFIER
     FROM INFORMATION_SCHEMA.ROUTINES
     WHERE
     ROUTINE_SCHEMA = ?
-    AND ROUTINE_TYPE = 'FUNCTION'`
+    AND ROUTINE_TYPE = 'FUNCTION'
+    ${whereFunctionName}`
   try {
     let functions = []
-    const results = await executeQuery(sql, [database])
+    let params = [database]
+    if(functionName) {
+      params.push(functionName)
+    }
+    const results = await executeQuery(sql, params)
     functions = await results.map(async result => {
       const name = result['ROUTINE_NAME']
       const charSetName = result['CHARACTER_SET_NAME']
@@ -93,15 +110,24 @@ ${content}`
   }
 }
 
-const getProcedures = async () => {
+const getProcedures = async (procedureName) => {
+  let whereProcedureName = ''
+  if(procedureName){
+    whereProcedureName = 'AND ROUTINE_NAME = ?'
+  }
   const sql = `SELECT ROUTINE_NAME, ROUTINE_TYPE, ROUTINE_DEFINITION, ROUTINE_COMMENT
     FROM INFORMATION_SCHEMA.ROUTINES
     WHERE
     ROUTINE_SCHEMA = ?
-    AND ROUTINE_TYPE = 'PROCEDURE'`
+    AND ROUTINE_TYPE = 'PROCEDURE'
+    ${whereProcedureName}`
   try {
     let procedures = []
-    const results = await executeQuery(sql, [database])
+    let params = [database]
+    if(procedureName){
+      params.push(procedureName)
+    }
+    const results = await executeQuery(sql, params)
     procedures = await results.map(async result => {
       const name = result['ROUTINE_NAME']
       const comment = result['ROUTINE_COMMENT']
@@ -125,15 +151,24 @@ ${content}`
   }
 }
 
-const getTriggers = async () => {
+const getTriggers = async (triggerName) => {
+  let whereTriggerName = ''
+  if(triggerName){
+    whereTriggerName = 'AND TRIGGER_NAME = ?'
+  }
   const sql = `SELECT TRIGGER_NAME, ACTION_STATEMENT AS CONTENT, ACTION_TIMING, EVENT_MANIPULATION, EVENT_OBJECT_TABLE, ACTION_ORIENTATION
     FROM INFORMATION_SCHEMA.TRIGGERS
     WHERE
-    TRIGGER_SCHEMA = ?`
+    TRIGGER_SCHEMA = ?
+    ${whereTriggerName}`
 
   try {
     let triggers = []
-    const results = await executeQuery(sql, [database])
+    let params = [database]
+    if(triggerName){
+      params.push(triggerName)
+    }
+    const results = await executeQuery(sql, params)
     triggers = await results.map(async result => {
       const name = result['TRIGGER_NAME']
       const content = result['CONTENT']
@@ -157,14 +192,23 @@ ${content}`
   }
 }
 
-const getViews = async () => {
+const getViews = async (viewName) => {
+  let whereViewName = ''
+  if(viewName){
+    whereViewName = 'AND TABLE_NAME = ?'
+  }
   const sql = `SELECT TABLE_SCHEMA, TABLE_NAME, VIEW_DEFINITION
     FROM INFORMATION_SCHEMA.VIEWS
-    WHERE TABLE_SCHEMA = ?`
+    WHERE TABLE_SCHEMA = ?
+    ${whereViewName}`
 
   try {
     let views = []
-    const results = await executeQuery(sql, [database])
+    let params = [database]
+    if(whereViewName){
+      params.push(viewName)
+    }
+    const results = await executeQuery(sql, params)
     views = await results.map(async result => {
       const name = result['TABLE_NAME']
       const content = result['VIEW_DEFINITION']
@@ -180,12 +224,20 @@ const getViews = async () => {
   }
 }
 
-const getEvents = async () => {
-  const sql = `SELECT * FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA = ?`
+const getEvents = async (eventName) => {
+  let whereEventName = ''
+  if(eventName){
+    whereEventName = 'AND EVENT_NAME = ?'
+  }
+  const sql = `SELECT * FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA = ? ${whereEventName}`
 
   try {
     let events = []
-    const results = await executeQuery(sql, [database])
+    let params = [database]
+    if(eventName) {
+      params.push([database])
+    }
+    const results = await executeQuery(sql, params)
     events = await results.map(async result => {
       const name = result['EVENT_NAME']
       const content = result['EVENT_DEFINITION']
