@@ -16,6 +16,11 @@ watcher.on('add', function(path, stats) {
   sync.commitChanges(path)
 });
 
+watcher.on('unlink', function(path, stats) {
+  console.log(`File ${path} was deleted`);
+  sync.deleteObject(path)
+});
+
 console.log('watching folder ./export...')
 
 exports.default = function() {

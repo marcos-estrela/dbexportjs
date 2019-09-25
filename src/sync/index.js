@@ -12,15 +12,22 @@ class DbSync {
     }
   }
 
+  async deleteObject(fileName) {
+    let content = await this.getDropQueryFromFileName(fileName)
+    if(content){
+      this.commit(content)
+    }
+  }
+
   async commitChanges(fileName) {
     try{
-      const content = await this.getContentFromFile(fileName)
+      let content = await this.getContentFromFile(fileName)
       if(content !== ''){
-        content = this.addDropQueryIfNotExists(content);
+        content = await this.addDropQueryIfNotExists(content)
         this.commit(content)
       }
     }catch(err){
-      throw new Error(err)
+      console.error(err)
     }
   }
 
@@ -33,7 +40,20 @@ class DbSync {
     })
   }
 
+  async getDropQueryFromFileName(fileName) {
+    let fileNameParts = fileName.split('/')
+    const objType = fileNameParts[1].replace('s', '')
+    const objName = fileNameParts[2].replace('.sql', '')
+    return `DROP ${objType} IF EXISTS ${objName};`
+  }
+
   async addDropQueryIfNotExists(content) {
+    const newHeader = await this.getDropQuery(content)
+    content = `${newHeader}${content};\n`
+    return content
+  }
+
+  async getDropQuery(content) {
     let lines = content.split('\n')
     let header = lines[0]
     let coluns = header.split('(')[0].split(' ')
@@ -42,18 +62,15 @@ class DbSync {
         typePos: 1,
         namePos: 2
     }
-    let newHeader = ''
-
+    let dropQuery = ''
     if(coluns[objParts.actionPos].toLowerCase() !== 'drop') {
         let objType = coluns[objParts.typePos]
         let objName = coluns[objParts.namePos]
         if(!header.includes('view')){
-            newHeader = `DROP ${objType} IF EXISTS ${objName};\n\n`
+          dropQuery = `DROP ${objType} IF EXISTS ${objName};\n\n`
         }
     }
-
-    content = `${newHeader}${content};\n`
-    return content
+    return dropQuery
   }
 
   async commit(query) {
