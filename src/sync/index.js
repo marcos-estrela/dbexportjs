@@ -1,7 +1,8 @@
 require('../config')
 
-const adapters = require('../adapters')
+const notifier = require('node-notifier');
 const fs = require('fs')
+const adapters = require('../adapters')
 
 class DbSync {
   constructor(adapter) {
@@ -74,12 +75,14 @@ class DbSync {
   }
 
   async commit(query) {
-    try{
-      return this.adapter.executeQuery(query)
-    }catch(err){
+    return this.adapter.executeQuery(query).catch(err => {
       console.log(err)
-      return null
-    }
+      notifier.notify({
+        title: 'Simples DB Sync',
+        message: 'Erro ao atualizar o objeto',
+        timeout: 5,
+      })
+    })
   }
 }
 
