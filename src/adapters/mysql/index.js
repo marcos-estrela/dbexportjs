@@ -211,8 +211,21 @@ const getViews = async (viewName) => {
     const results = await executeQuery(sql, params)
     views = await results.map(async result => {
       const name = result['TABLE_NAME']
-      const content = result['VIEW_DEFINITION']
-      let procedure = `CREATE OR REPLACE VIEW ${name} AS ${content}`
+      let content = result['VIEW_DEFINITION']
+      content = content.split('select').join(`select\n `)
+      content = content.split('SELECT').join(`SELECT\n `)
+      content = content.split('from').join(`\nfrom`)
+      content = content.split('FROM').join(`\nFROM`)
+      content = content.split(',').join(`,\n  `)
+
+      const options = ['right', 'left', 'inner', '', 'left outer', 'right outer']
+      options.map((option) => {
+        const token = `${option} join`.trim()
+        const upperToken = token.toUpperCase()
+        content = content.split(token).join(`\n${token}`)
+        content = content.split(upperToken).join(`\n${upperToken}`)
+      })
+      let procedure = `CREATE OR REPLACE VIEW ${name} AS\n${content}`
 
       return { name: name, content: procedure }
     })
