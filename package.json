@@ -14,7 +14,8 @@
     "mocha": "^6.2.0"
   },
   "scripts": {
-    "db:export": "node ./src/cli.js",
+    "db:export": "node ./src/cli/dbexport.js",
+    "db:sync": "node ./src/cli/dbsync.js",
     "npm:publish": "npm publish --access public",
     "test": "mocha"
   },
