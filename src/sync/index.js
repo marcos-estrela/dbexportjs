@@ -67,11 +67,15 @@ class DbSync {
     if(coluns[objParts.actionPos].toLowerCase() !== 'drop') {
         let objType = coluns[objParts.typePos]
         let objName = coluns[objParts.namePos]
-        if(!header.includes('view')){
+        if(!this.isViewContent(header)) {
           dropQuery = `DROP ${objType} IF EXISTS ${objName};\n\n`
         }
     }
     return dropQuery
+  }
+
+  isViewContent(content) {
+    return content.toLowerCase().includes('view')
   }
 
   async commit(query) {
