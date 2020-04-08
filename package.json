@@ -11,7 +11,8 @@
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^6.2.0"
+    "mocha": "^6.2.0",  
+    "minimist": ">=0.2.1"
   },
   "scripts": {
     "db:export": "node ./src/cli/dbexport.js",
