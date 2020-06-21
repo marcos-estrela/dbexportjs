@@ -8,12 +8,12 @@
     "gulp": "^4.0.2",
     "mysql": "^2.17.1",
     "node-notifier": "^6.0.0",
-    "minimist": ">=0.2.1"
+    "minimist": ">=1.2.3"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^6.2.0",  
-    "minimist": ">=0.2.1"
+    "minimist": ">=1.2.3"
   },
   "scripts": {
     "db:export": "node ./src/cli/dbexport.js",
