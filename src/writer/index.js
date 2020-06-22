@@ -1,4 +1,5 @@
 const fs = require('fs')
+const { EOL } = require('os')
 
 const saveDbObjects = async (objectType, objectsList) => {
   const objects = await objectsList;
@@ -26,6 +27,7 @@ const makeDir = (dirName) => {
 
 const write = (dirName, fileName, fileContent) => {
   const path = `${dirName}/${fileName}`
+  fileContent = replaceNewLine(fileContent)
 
   if (!fs.existsSync(dirName)){
     const dirParts = dirName.replace('./', '').split('/')
@@ -43,6 +45,11 @@ const write = (dirName, fileName, fileContent) => {
 
     console.log(`The file ${fileName} was saved!`);
   });
+}
+
+const replaceNewLine = (content) => {
+  let lines = content.split('\r\n')
+  return lines.join(EOL)
 }
 
 module.exports = {

@@ -1,7 +1,9 @@
-const fs = require('fs')
 const connection = require('./connection')
 
 const database = process.env.DATABASE
+
+const FUNCTION = 'FUNCTION'
+const PROCEDURE = 'PROCEDURE'
 
 const executeQuery = async (query, params = []) => {
   return new Promise(function(resolve, reject){
@@ -23,13 +25,14 @@ const end = async () => {
 }
 
 const getParameters = async (objectName, objectType) => {
-  const sql = `SELECT SPECIFIC_NAME, PARAMETER_MODE, PARAMETER_NAME, DTD_IDENTIFIER
-    FROM INFORMATION_SCHEMA.PARAMETERS
+  const sql = `SELECT par.SPECIFIC_NAME, par.PARAMETER_MODE, par.PARAMETER_NAME, par.DTD_IDENTIFIER, par.CHARACTER_SET_NAME, sch.DEFAULT_CHARACTER_SET_NAME
+    FROM INFORMATION_SCHEMA.PARAMETERS par
+    JOIN INFORMATION_SCHEMA.SCHEMATA sch ON par.SPECIFIC_SCHEMA = sch.SCHEMA_NAME
     WHERE
-    SPECIFIC_SCHEMA = ?
-    AND SPECIFIC_NAME = ?
-    AND ROUTINE_TYPE = ?
-    ORDER BY SPECIFIC_NAME, ORDINAL_POSITION ASC`
+    par.SPECIFIC_SCHEMA = ?
+    AND par.SPECIFIC_NAME = ?
+    AND par.ROUTINE_TYPE = ?
+    ORDER BY par.SPECIFIC_NAME, par.ORDINAL_POSITION ASC`
   try {
     const results = await executeQuery(sql, [database, objectName, objectType])
     return results
@@ -77,11 +80,11 @@ const getFunctions = async (functionName) => {
     FROM INFORMATION_SCHEMA.ROUTINES
     WHERE
     ROUTINE_SCHEMA = ?
-    AND ROUTINE_TYPE = 'FUNCTION'
+    AND ROUTINE_TYPE = ?
     ${whereFunctionName}`
   try {
     let functions = []
-    let params = [database]
+    let params = [database, FUNCTION]
     if(functionName) {
       params.push(functionName)
     }
@@ -91,10 +94,8 @@ const getFunctions = async (functionName) => {
       const charSetName = result['CHARACTER_SET_NAME']
       const charSet = charSetName ? ` CHARSET ${charSetName}` : ''
       let parametersList = []
-      let parameters = await getParameters(name, 'FUNCTION')
-      parametersList = await parameters.map(param => {
-        return `${param['PARAMETER_NAME']} ${param['DTD_IDENTIFIER']}`
-      })
+      let parameters = await getParameters(name, FUNCTION)
+      parametersList = await parameters.map(params => makeParametersForFunctions(params))
       const returnType = parametersList.shift().replace('null ', '')
       const content = result['ROUTINE_DEFINITION']
       let functionContent = `CREATE FUNCTION ${name}(${parametersList.join(', ')}) RETURNS ${returnType}${charSet}
@@ -110,6 +111,8 @@ ${content}`
   }
 }
 
+const makeParametersForFunctions = (params) => makeParameters(params, FUNCTION)
+
 const getProcedures = async (procedureName) => {
   let whereProcedureName = ''
   if(procedureName){
@@ -119,11 +122,11 @@ const getProcedures = async (procedureName) => {
     FROM INFORMATION_SCHEMA.ROUTINES
     WHERE
     ROUTINE_SCHEMA = ?
-    AND ROUTINE_TYPE = 'PROCEDURE'
+    AND ROUTINE_TYPE = ?
     ${whereProcedureName}`
   try {
     let procedures = []
-    let params = [database]
+    let params = [database, PROCEDURE]
     if(procedureName){
       params.push(procedureName)
     }
@@ -133,9 +136,7 @@ const getProcedures = async (procedureName) => {
       const comment = result['ROUTINE_COMMENT']
       let parametersList = []
       let parameters = await getParameters(name, 'PROCEDURE')
-      parametersList = await parameters.map(param => {
-        return `${param['PARAMETER_MODE']} ${param['PARAMETER_NAME']} ${param['DTD_IDENTIFIER']}`
-      })
+      parametersList = await parameters.map(params => makeParametersForProcedures(parameters))
       const content = result['ROUTINE_DEFINITION']
       let procedure = `CREATE PROCEDURE ${name}(${parametersList.join(', ')})
     COMMENT '${comment}'
@@ -149,6 +150,25 @@ ${content}`
     console.log(error)
     return []
   }
+}
+
+const makeParametersForProcedures = (params) => makeParameters(params, PROCEDURE)
+
+const makeParameters = (params, routineType) => {
+  let charset = '';
+  let parameter = '';
+
+  if (routineType === PROCEDURE) {
+    parameter = `${param['PARAMETER_MODE']}`
+  }
+
+  parameter = `${parameter} ${param['PARAMETER_NAME']} ${param['DTD_IDENTIFIER']}`
+
+  if (params['CHARACTER_SET_NAME'] && (params['CHARACTER_SET_NAME'] !== params['DEFAULT_CHARACTER_SET_NAME'])) {
+    charset = ` CHARSET ${params['CHARACTER_SET_NAME']}`
+  }
+
+  return `${parameter} ${charset}`
 }
 
 const getTriggers = async (triggerName) => {
