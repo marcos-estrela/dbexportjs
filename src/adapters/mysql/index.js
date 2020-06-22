@@ -136,7 +136,7 @@ const getProcedures = async (procedureName) => {
       const comment = result['ROUTINE_COMMENT']
       let parametersList = []
       let parameters = await getParameters(name, 'PROCEDURE')
-      parametersList = await parameters.map(params => makeParametersForProcedures(parameters))
+      parametersList = await parameters.map(params => makeParametersForProcedures(params))
       const content = result['ROUTINE_DEFINITION']
       let procedure = `CREATE PROCEDURE ${name}(${parametersList.join(', ')})
     COMMENT '${comment}'
@@ -159,10 +159,10 @@ const makeParameters = (params, routineType) => {
   let parameter = '';
 
   if (routineType === PROCEDURE) {
-    parameter = `${param['PARAMETER_MODE']}`
+    parameter = `${params['PARAMETER_MODE']}`
   }
 
-  parameter = `${parameter} ${param['PARAMETER_NAME']} ${param['DTD_IDENTIFIER']}`
+  parameter = `${parameter} ${params['PARAMETER_NAME']} ${params['DTD_IDENTIFIER']}`
 
   if (params['CHARACTER_SET_NAME'] && (params['CHARACTER_SET_NAME'] !== params['DEFAULT_CHARACTER_SET_NAME'])) {
     charset = ` CHARSET ${params['CHARACTER_SET_NAME']}`
