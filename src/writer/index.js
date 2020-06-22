@@ -48,6 +48,7 @@ const write = (dirName, fileName, fileContent) => {
 }
 
 const replaceNewLine = (content) => {
+  content = content.replace('^M', '')
   let lines = content.split('\r\n')
   return lines.join(EOL)
 }

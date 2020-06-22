@@ -165,10 +165,10 @@ const makeParameters = (params, routineType) => {
   parameter = `${parameter} ${params['PARAMETER_NAME']} ${params['DTD_IDENTIFIER']}`
 
   if (params['CHARACTER_SET_NAME'] && (params['CHARACTER_SET_NAME'] !== params['DEFAULT_CHARACTER_SET_NAME'])) {
-    charset = `CHARSET ${params['CHARACTER_SET_NAME']}`
+    charset = ` CHARSET ${params['CHARACTER_SET_NAME']}`
   }
 
-  return `${parameter} ${charset}`
+  return `${parameter}${charset}`
 }
 
 const getTriggers = async (triggerName) => {
