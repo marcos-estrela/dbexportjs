@@ -19,6 +19,7 @@ func TestSaveDbObjects(t *testing.T) {
 	var dbObjects = []DbObject{
 		{Type: "views", Name: "vw_users", Content: "CREATE OR REPLACE VIEW vw_users SELECT * FROM users"},
 		{Type: "procedures", Name: "sp_users_ins", Content: "CREATE PROCEDURE sp_users_ins(IN p_name VARCHAR(255), IN p_email VARCHAR(255))"},
+		{Type: "functions", Name: "fn_users_exists", Content: "CREATE FUNCTION fn_users_exists(p_userename VARCHAR(255))"},
 	}
 
 	SaveDbObjects(dbObjects)

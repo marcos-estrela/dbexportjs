@@ -3,6 +3,7 @@ package dbexport
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type DbObject struct {
@@ -14,6 +15,15 @@ type DbObject struct {
 type CreateTable struct {
 	Table       string
 	CreateTable string
+}
+
+type CreateProcedure struct {
+	Procedure           string
+	SQLMode             string
+	CreateProcedure     string
+	CharacterSetClient  string
+	CollationConnection string
+	DatabaseCollation   string
 }
 
 type ViewDefinition struct {
@@ -36,6 +46,10 @@ func GetTables(tableName string) []DbObject {
 	return GetDbObjectsFor("table", tableName)
 }
 
+func GetProcedures(procedureName string) []DbObject {
+	return GetDbObjectsFor("procedure", procedureName)
+}
+
 func GetDbObjectsFor(objType, objName string) []DbObject {
 	var funcFromSchema func(string) []string
 	var funcSqlFor func(string) string
@@ -48,6 +62,9 @@ func GetDbObjectsFor(objType, objName string) []DbObject {
 	} else if objType == "view" {
 		funcFromSchema = GetViewsFromSchema
 		funcSqlFor = GetSqlForView
+	} else if objType == "procedure" {
+		funcFromSchema = GetProceduresFromSchema
+		funcSqlFor = GetSqlForProcedure
 	}
 
 	objNames := funcFromSchema(objName)
@@ -143,6 +160,88 @@ func GetSqlForView(viewName string) string {
 		panic(err.Error())
 	}
 
+	definition = formatQuery(definition)
+
 	definition = fmt.Sprintf("CREATE OR REPLACE VIEW %s AS\n%s", viewName, definition)
+
+	return definition
+}
+
+func formatQuery(query string) string {
+	separedQuery := strings.Split(query, ",")
+	query = strings.Join(separedQuery, ",\n ")
+
+	separedQuery = strings.Split(query, "select")
+	query = strings.Join(separedQuery, "select\n")
+
+	separedQuery = strings.Split(query, "SELECT")
+	query = strings.Join(separedQuery, "SELECT\n")
+
+	separedQuery = strings.Split(query, "from")
+	query = strings.Join(separedQuery, "\nfrom\n")
+
+	separedQuery = strings.Split(query, "FROM")
+	query = strings.Join(separedQuery, "\nFROM\n")
+
+	return query
+}
+
+func GetProceduresFromSchema(procedureName string) []string {
+	whereName := ""
+	var results *sql.Rows
+	var procedures []string
+
+	if procedureName != "" {
+		whereName = " AND ROUTINE_NAME = ?"
+	}
+
+	sql := "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_TYPE = ?" + whereName
+
+	if procedureName != "" {
+		results = ExecuteQuery(sql, "george", "PROCEDURE", procedureName)
+	} else {
+		results = ExecuteQuery(sql, "george", "PROCEDURE")
+	}
+
+	for results.Next() {
+		var procedureName string
+		// for each row, scan the result into our tag composite object
+		err := results.Scan(&procedureName)
+		if err != nil {
+			panic(err.Error()) // proper error handling instead of panic in your app
+		}
+		procedures = append(procedures, procedureName)
+	}
+
+	return procedures
+}
+
+func GetSqlForProcedure(procedureName string) string {
+	var createDefinition CreateProcedure
+	query := fmt.Sprintf("SHOW CREATE PROCEDURE %s", procedureName)
+	result := ExecuteQueryRow(query)
+	err := result.Scan(
+		&createDefinition.Procedure,
+		&createDefinition.SQLMode,
+		&createDefinition.CreateProcedure,
+		&createDefinition.CharacterSetClient,
+		&createDefinition.CollationConnection,
+		&createDefinition.DatabaseCollation,
+	)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	definition := formatProcedure(createDefinition.CreateProcedure)
+
+	return definition
+}
+
+func formatProcedure(definition string) string {
+	separatedDefinition := strings.Split(definition, "PROCEDURE")
+
+	definition = "CREATE PROCEDURE " + separatedDefinition[1]
+
 	return definition
 }

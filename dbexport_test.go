@@ -91,3 +91,47 @@ func TestExportView(t *testing.T) {
 		t.Errorf("Expected contains CREATE OR REPLACE VIEW actual %s", sql)
 	}
 }
+
+func TestGetAllProceduresFromSchema(t *testing.T) {
+	objs := GetProceduresFromSchema("")
+	qtd := len(objs)
+	if qtd < 1 {
+		t.Errorf("Expected grater than 1 found %d", qtd)
+	}
+}
+
+func TestGetOneProcedureFromSchema(t *testing.T) {
+	objs := GetProceduresFromSchema("sp_users_ins")
+	qtd := len(objs)
+
+	if qtd != 1 {
+		t.Errorf("Expected 1 found %d", qtd)
+	}
+}
+
+func TestGetProcedures(t *testing.T) {
+	objs := GetProcedures("")
+	qtd := len(objs)
+
+	if qtd < 1 {
+		t.Errorf("Expected grater than 1 found %d", qtd)
+	}
+}
+
+func TestGetOneProcedure(t *testing.T) {
+	objs := GetProcedures("sp_users_ins")
+	qtd := len(objs)
+
+	if qtd != 1 {
+		t.Errorf("Expected 1 found %d", qtd)
+	}
+}
+
+func TestExportProcedure(t *testing.T) {
+	objName := "sp_users_ins"
+	sql := GetSqlForProcedure(objName)
+
+	if !strings.Contains(strings.ToUpper(sql), "CREATE PROCEDURE") {
+		t.Errorf("Expected contains CREATE PROCEDURE actual %s", sql)
+	}
+}
