@@ -1,4 +1,4 @@
-package writer
+package dbexport
 
 import (
 	"io/ioutil"
@@ -9,12 +9,6 @@ import (
 	"runtime"
 	"strings"
 )
-
-type DbObject struct {
-	Type    string
-	Name    string
-	Content string
-}
 
 func WriteSqlToFile(filePath, sql string) bool {
 	content := replaceNewLine(sql)
@@ -46,7 +40,7 @@ func SaveDbObjects(dbObjects []DbObject) []string {
 
 	for i := range dbObjects {
 		dbObject := dbObjects[i]
-		filePath := makeObjectPath(dbObject)
+		filePath := makeDbObjectPath(dbObject)
 		if WriteSqlToFile(filePath, dbObject.Content) {
 			savedFiles = append(savedFiles, dbObject.Name)
 		}
@@ -55,7 +49,7 @@ func SaveDbObjects(dbObjects []DbObject) []string {
 	return savedFiles
 }
 
-func makeObjectPath(dbObject DbObject) string {
+func makeDbObjectPath(dbObject DbObject) string {
 	_, filename, _, _ := runtime.Caller(0)
 	dir := path.Join(path.Dir(filename), "..")
 	return dir + "/export/" + dbObject.Type + "/" + dbObject.Name + ".sql"

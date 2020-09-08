@@ -1,4 +1,4 @@
-package writer
+package dbexport
 
 import (
 	"os"
@@ -26,19 +26,19 @@ func TestSaveDbObjects(t *testing.T) {
 	for i := range dbObjects {
 		dbObject := dbObjects[i]
 
-		filePath := makeObjectPath(dbObject)
+		filePath := makeDbObjectPath(dbObject)
 		assertFileExists(t, filePath)
 	}
 }
 
-func TestMakeObjectPath(t *testing.T) {
+func TestMakeDbObjectPath(t *testing.T) {
 	dbObj := DbObject{
 		Type:    "triggers",
 		Name:    "tg_users_ins_after",
 		Content: "CREATE TRIGGER tg_users_ins_after",
 	}
 
-	filePath := makeObjectPath(dbObj)
+	filePath := makeDbObjectPath(dbObj)
 	expectedFileName := "export/triggers/tg_users_ins_after.sql"
 
 	if !strings.Contains(filePath, expectedFileName) {
