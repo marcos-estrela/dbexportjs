@@ -26,6 +26,15 @@ type CreateProcedure struct {
 	DatabaseCollation   string
 }
 
+type CreateFunction struct {
+	Function            string
+	SQLMode             string
+	CreateFunction      string
+	CharacterSetClient  string
+	CollationConnection string
+	DatabaseCollation   string
+}
+
 type ViewDefinition struct {
 }
 
@@ -50,6 +59,10 @@ func GetProcedures(procedureName string) []DbObject {
 	return GetDbObjectsFor("procedure", procedureName)
 }
 
+func GetFunctions(functionName string) []DbObject {
+	return GetDbObjectsFor("function", functionName)
+}
+
 func GetDbObjectsFor(objType, objName string) []DbObject {
 	var funcFromSchema func(string) []string
 	var funcSqlFor func(string) string
@@ -65,6 +78,9 @@ func GetDbObjectsFor(objType, objName string) []DbObject {
 	} else if objType == "procedure" {
 		funcFromSchema = GetProceduresFromSchema
 		funcSqlFor = GetSqlForProcedure
+	} else if objType == "function" {
+		funcFromSchema = GetFunctionsFromSchema
+		funcSqlFor = GetSqlForFunction
 	}
 
 	objNames := funcFromSchema(objName)
@@ -77,13 +93,11 @@ func GetDbObjectsFor(objType, objName string) []DbObject {
 	}
 
 	return objects
-
 }
 
 func GetTablesFromSchema(tableName string) []string {
 	whereTableName := ""
 	var results *sql.Rows
-	var tables []string
 
 	if tableName != "" {
 		whereTableName = " AND TABLE_NAME = ?"
@@ -97,17 +111,7 @@ func GetTablesFromSchema(tableName string) []string {
 		results = ExecuteQuery(sql, "BASE TABLE", "george")
 	}
 
-	for results.Next() {
-		var tableName string
-		// for each row, scan the result into our tag composite object
-		err := results.Scan(&tableName)
-		if err != nil {
-			panic(err.Error()) // proper error handling instead of panic in your app
-		}
-		tables = append(tables, tableName)
-	}
-
-	return tables
+	return objectListFromResults(results)
 }
 
 func GetSqlForTable(tableName string) string {
@@ -124,7 +128,6 @@ func GetSqlForTable(tableName string) string {
 func GetViewsFromSchema(viewName string) []string {
 	whereViewName := ""
 	var results *sql.Rows
-	var views []string
 
 	if viewName != "" {
 		whereViewName = " AND TABLE_NAME = ?"
@@ -138,17 +141,7 @@ func GetViewsFromSchema(viewName string) []string {
 		results = ExecuteQuery(sql, "george")
 	}
 
-	for results.Next() {
-		var viewName string
-		// for each row, scan the result into our tag composite object
-		err := results.Scan(&viewName)
-		if err != nil {
-			panic(err.Error()) // proper error handling instead of panic in your app
-		}
-		views = append(views, viewName)
-	}
-
-	return views
+	return objectListFromResults(results)
 }
 
 func GetSqlForView(viewName string) string {
@@ -189,7 +182,6 @@ func formatQuery(query string) string {
 func GetProceduresFromSchema(procedureName string) []string {
 	whereName := ""
 	var results *sql.Rows
-	var procedures []string
 
 	if procedureName != "" {
 		whereName = " AND ROUTINE_NAME = ?"
@@ -203,17 +195,7 @@ func GetProceduresFromSchema(procedureName string) []string {
 		results = ExecuteQuery(sql, "george", "PROCEDURE")
 	}
 
-	for results.Next() {
-		var procedureName string
-		// for each row, scan the result into our tag composite object
-		err := results.Scan(&procedureName)
-		if err != nil {
-			panic(err.Error()) // proper error handling instead of panic in your app
-		}
-		procedures = append(procedures, procedureName)
-	}
-
-	return procedures
+	return objectListFromResults(results)
 }
 
 func GetSqlForProcedure(procedureName string) string {
@@ -244,4 +226,69 @@ func formatProcedure(definition string) string {
 	definition = "CREATE PROCEDURE " + separatedDefinition[1]
 
 	return definition
+}
+
+func GetFunctionsFromSchema(functionName string) []string {
+	whereName := ""
+	var results *sql.Rows
+
+	if functionName != "" {
+		whereName = " AND ROUTINE_NAME = ?"
+	}
+
+	sql := "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_TYPE = ?" + whereName
+
+	if functionName != "" {
+		results = ExecuteQuery(sql, "george", "FUNCTION", functionName)
+	} else {
+		results = ExecuteQuery(sql, "george", "FUNCTION")
+	}
+
+	return objectListFromResults(results)
+}
+
+func GetSqlForFunction(functionName string) string {
+	var createDefinition CreateFunction
+	query := fmt.Sprintf("SHOW CREATE FUNCTION %s", functionName)
+	result := ExecuteQueryRow(query)
+	err := result.Scan(
+		&createDefinition.Function,
+		&createDefinition.SQLMode,
+		&createDefinition.CreateFunction,
+		&createDefinition.CharacterSetClient,
+		&createDefinition.CollationConnection,
+		&createDefinition.DatabaseCollation,
+	)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	definition := formatFunction(createDefinition.CreateFunction)
+
+	return definition
+}
+
+func formatFunction(definition string) string {
+	separatedDefinition := strings.Split(definition, "FUNCTION")
+
+	definition = "CREATE FUNCTION " + separatedDefinition[1]
+
+	return definition
+}
+
+func objectListFromResults(results *sql.Rows) []string {
+	var objctNames []string
+
+	for results.Next() {
+		var objectName string
+		// for each row, scan the result into our tag composite object
+		err := results.Scan(&objectName)
+		if err != nil {
+			panic(err.Error()) // proper error handling instead of panic in your app
+		}
+		objctNames = append(objctNames, objectName)
+	}
+
+	return objctNames
 }

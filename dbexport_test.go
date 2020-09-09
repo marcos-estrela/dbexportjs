@@ -135,3 +135,47 @@ func TestExportProcedure(t *testing.T) {
 		t.Errorf("Expected contains CREATE PROCEDURE actual %s", sql)
 	}
 }
+
+func TestGetAllFunctionsFromSchema(t *testing.T) {
+	objs := GetFunctionsFromSchema("")
+	qtd := len(objs)
+	if qtd < 1 {
+		t.Errorf("Expected grater than 1 found %d", qtd)
+	}
+}
+
+func TestGetOneFunctionFromSchema(t *testing.T) {
+	objs := GetFunctionsFromSchema("fn_users_exists")
+	qtd := len(objs)
+
+	if qtd != 1 {
+		t.Errorf("Expected 1 found %d", qtd)
+	}
+}
+
+func TestGetFunctions(t *testing.T) {
+	objs := GetFunctions("")
+	qtd := len(objs)
+
+	if qtd < 1 {
+		t.Errorf("Expected grater than 1 found %d", qtd)
+	}
+}
+
+func TestGetOneFunction(t *testing.T) {
+	objs := GetFunctions("fn_users_exists")
+	qtd := len(objs)
+
+	if qtd != 1 {
+		t.Errorf("Expected 1 found %d", qtd)
+	}
+}
+
+func TestExportFunction(t *testing.T) {
+	objName := "fn_users_exists"
+	sql := GetSqlForFunction(objName)
+
+	if !strings.Contains(strings.ToUpper(sql), "CREATE FUNCTION") {
+		t.Errorf("Expected contains CREATE FUNCTION actual %s", sql)
+	}
+}
