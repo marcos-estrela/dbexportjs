@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+var QUERIES map[string]string
+var QUERIES_WHERE map[string]string
+
 type DbObject struct {
 	Type    string
 	Name    string
@@ -109,6 +112,27 @@ func GetDbObjectsFor(objType, objName string) []DbObject {
 	}
 
 	return objects
+}
+
+func GetObjectsFromSchema(objectType string, objectName string) []string {
+	var results *sql.Rows
+	var searchParameters []interface{}
+
+	query := QUERIES[objectType]
+
+	searchParameters = append(searchParameters, "george")
+	if objectName != "" {
+		query += QUERIES_WHERE[objectType]
+		searchParameters = append(searchParameters, objectName)
+	}
+
+	results = ExecuteQuery(query, searchParameters...)
+
+	return objectListFromResults(results)
+}
+
+func GetSqlForObject(objectName string, objectType string, query string) string {
+
 }
 
 func GetTablesFromSchema(tableName string) []string {
