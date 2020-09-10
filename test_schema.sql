@@ -56,3 +56,13 @@ BEGIN
   RETURN v_exists;
 END$$
 DELIMITER ;
+
+
+DELIMITER $$
+$$
+CREATE TRIGGER tg_users_ins_after
+AFTER INSERT
+ON users FOR EACH ROW
+INSERT INTO test_table (name) VALUES (NEW.username)
+$$
+DELIMITER ;

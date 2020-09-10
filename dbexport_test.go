@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// Tests for tables
 func TestGetAllTablesFromSchema(t *testing.T) {
 	tables := GetTablesFromSchema("")
 	qtdTables := len(tables)
@@ -48,6 +49,7 @@ func TestExportTable(t *testing.T) {
 	}
 }
 
+// Tests for views
 func TestGetAllViewsFromSchema(t *testing.T) {
 	tables := GetViewsFromSchema("")
 	qtdTables := len(tables)
@@ -92,6 +94,7 @@ func TestExportView(t *testing.T) {
 	}
 }
 
+// Tests for procedures
 func TestGetAllProceduresFromSchema(t *testing.T) {
 	objs := GetProceduresFromSchema("")
 	qtd := len(objs)
@@ -136,6 +139,7 @@ func TestExportProcedure(t *testing.T) {
 	}
 }
 
+// Tests for functions
 func TestGetAllFunctionsFromSchema(t *testing.T) {
 	objs := GetFunctionsFromSchema("")
 	qtd := len(objs)
@@ -177,5 +181,50 @@ func TestExportFunction(t *testing.T) {
 
 	if !strings.Contains(strings.ToUpper(sql), "CREATE FUNCTION") {
 		t.Errorf("Expected contains CREATE FUNCTION actual %s", sql)
+	}
+}
+
+// Tests for triggers
+func TestGetAllTriggersFromSchema(t *testing.T) {
+	objs := GetTriggersFromSchema("")
+	qtd := len(objs)
+	if qtd < 1 {
+		t.Errorf("Expected grater than 1 found %d", qtd)
+	}
+}
+
+func TestGetOneTriggerFromSchema(t *testing.T) {
+	objs := GetTriggersFromSchema("tg_users_ins_after")
+	qtd := len(objs)
+
+	if qtd != 1 {
+		t.Errorf("Expected 1 found %d", qtd)
+	}
+}
+
+func TestGetTriggers(t *testing.T) {
+	objs := GetTriggers("")
+	qtd := len(objs)
+
+	if qtd < 1 {
+		t.Errorf("Expected grater than 1 found %d", qtd)
+	}
+}
+
+func TestGetOneTrigger(t *testing.T) {
+	objs := GetTriggers("tg_users_ins_after")
+	qtd := len(objs)
+
+	if qtd != 1 {
+		t.Errorf("Expected 1 found %d", qtd)
+	}
+}
+
+func TestExportTrigger(t *testing.T) {
+	objName := "tg_users_ins_after"
+	sql := GetSqlForTrigger(objName)
+
+	if !strings.Contains(strings.ToUpper(sql), "CREATE TRIGGER") {
+		t.Errorf("Expected contains TRIGGER actual %s", sql)
 	}
 }

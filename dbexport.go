@@ -35,6 +35,15 @@ type CreateFunction struct {
 	DatabaseCollation   string
 }
 
+type CreateTrigger struct {
+	TriggerName       string
+	ActionStatement   string
+	ActionTiming      string
+	EventManipulation string
+	EventObjectTable  string
+	ActionOrientation string
+}
+
 type ViewDefinition struct {
 }
 
@@ -63,6 +72,10 @@ func GetFunctions(functionName string) []DbObject {
 	return GetDbObjectsFor("function", functionName)
 }
 
+func GetTriggers(triggerName string) []DbObject {
+	return GetDbObjectsFor("trigger", triggerName)
+}
+
 func GetDbObjectsFor(objType, objName string) []DbObject {
 	var funcFromSchema func(string) []string
 	var funcSqlFor func(string) string
@@ -81,6 +94,9 @@ func GetDbObjectsFor(objType, objName string) []DbObject {
 	} else if objType == "function" {
 		funcFromSchema = GetFunctionsFromSchema
 		funcSqlFor = GetSqlForFunction
+	} else if objType == "trigger" {
+		funcFromSchema = GetTriggersFromSchema
+		funcSqlFor = GetSqlForTrigger
 	}
 
 	objNames := funcFromSchema(objName)
@@ -274,6 +290,56 @@ func formatFunction(definition string) string {
 
 	definition = "CREATE FUNCTION " + separatedDefinition[1]
 
+	return definition
+}
+
+func GetTriggersFromSchema(triggerName string) []string {
+	whereName := ""
+	var results *sql.Rows
+
+	if triggerName != "" {
+		whereName = " AND TRIGGER_NAME = ?"
+	}
+
+	sql := "SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA = ?" + whereName
+
+	if triggerName != "" {
+		results = ExecuteQuery(sql, "george", triggerName)
+	} else {
+		results = ExecuteQuery(sql, "george")
+	}
+
+	return objectListFromResults(results)
+}
+
+func GetSqlForTrigger(triggerName string) string {
+	var createTrigger CreateTrigger
+	query := "SELECT TRIGGER_NAME, ACTION_STATEMENT, ACTION_TIMING, EVENT_MANIPULATION, EVENT_OBJECT_TABLE, ACTION_ORIENTATION FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA = ? AND TRIGGER_NAME = ?"
+	result := ExecuteQueryRow(query, "george", triggerName)
+	err := result.Scan(
+		&createTrigger.TriggerName,
+		&createTrigger.ActionStatement,
+		&createTrigger.ActionTiming,
+		&createTrigger.EventManipulation,
+		&createTrigger.EventObjectTable,
+		&createTrigger.ActionOrientation,
+	)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	definition := formatTrigger(createTrigger)
+
+	return definition
+}
+
+func formatTrigger(trigger CreateTrigger) string {
+	definitionStruct := `CREATE TRIGGER %s
+	%s %s
+	ON %s FOR EACH ROW
+	%s`
+	definition := fmt.Sprintf(definitionStruct, trigger.TriggerName, trigger.ActionTiming, trigger.EventManipulation, trigger.EventObjectTable, trigger.ActionStatement)
 	return definition
 }
 
