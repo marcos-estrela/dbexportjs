@@ -6,8 +6,38 @@ import (
 	"strings"
 )
 
-var QUERIES map[string]string
-var QUERIES_WHERE map[string]string
+var TABLES string = "tables"
+var VIEWS string = "views"
+var PROCEDURES string = "procedures"
+var FUNCTIONS string = "functions"
+var TRIGGERS string = "triggers"
+var EVENTS string = "events"
+
+var queriesForSchema = map[string]string{
+	TABLES:     "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = ?",
+	VIEWS:      "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = ? ",
+	PROCEDURES: "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_TYPE = ?",
+	FUNCTIONS:  "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_TYPE = ?",
+	TRIGGERS:   "SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA = ?",
+	EVENTS:     "SELECT EVENT_NAME FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA = ?",
+}
+var queriesForSchemaWhere = map[string]string{
+	TABLES:     " AND TABLE_NAME = ?",
+	VIEWS:      " AND TABLE_NAME = ?",
+	PROCEDURES: " AND ROUTINE_NAME = ?",
+	FUNCTIONS:  " AND ROUTINE_NAME = ?",
+	TRIGGERS:   " AND TRIGGER_NAME = ?",
+	EVENTS:     " AND EVENT_NAME = ?",
+}
+
+var sqlForFuncs = map[string]func(string) string{
+	TABLES:     GetSqlForTable,
+	VIEWS:      GetSqlForView,
+	PROCEDURES: GetSqlForProcedure,
+	FUNCTIONS:  GetSqlForFunction,
+	TRIGGERS:   GetSqlForTrigger,
+	EVENTS:     GetSqlForEvent,
+}
 
 type DbObject struct {
 	Type    string
@@ -18,6 +48,9 @@ type DbObject struct {
 type CreateTable struct {
 	Table       string
 	CreateTable string
+}
+
+type ViewDefinition struct {
 }
 
 type CreateProcedure struct {
@@ -47,7 +80,17 @@ type CreateTrigger struct {
 	ActionOrientation string
 }
 
-type ViewDefinition struct {
+type CreateEvent struct {
+	EventName       string
+	EventDefinition string
+	ExecuteAt       interface{}
+	IntervalValue   interface{}
+	IntervalField   interface{}
+	EventComment    string
+	Status          string
+	OnCompletion    string
+	Starts          interface{}
+	Ends            interface{}
 }
 
 type DatabaseAdapter interface {
@@ -60,53 +103,37 @@ type DatabaseAdapter interface {
 }
 
 func GetViews(viewName string) []DbObject {
-	return GetDbObjectsFor("view", viewName)
+	return GetDbObjectsFor(VIEWS, viewName)
 }
 
 func GetTables(tableName string) []DbObject {
-	return GetDbObjectsFor("table", tableName)
+	return GetDbObjectsFor(TABLES, tableName)
 }
 
 func GetProcedures(procedureName string) []DbObject {
-	return GetDbObjectsFor("procedure", procedureName)
+	return GetDbObjectsFor(PROCEDURES, procedureName)
 }
 
 func GetFunctions(functionName string) []DbObject {
-	return GetDbObjectsFor("function", functionName)
+	return GetDbObjectsFor(FUNCTIONS, functionName)
 }
 
 func GetTriggers(triggerName string) []DbObject {
-	return GetDbObjectsFor("trigger", triggerName)
+	return GetDbObjectsFor(TRIGGERS, triggerName)
+}
+
+func GetEvents(eventName string) []DbObject {
+	return GetDbObjectsFor(EVENTS, eventName)
 }
 
 func GetDbObjectsFor(objType, objName string) []DbObject {
-	var funcFromSchema func(string) []string
-	var funcSqlFor func(string) string
 	objects := []DbObject{}
 	dbObject := DbObject{}
-
-	if objType == "table" {
-		funcFromSchema = GetTablesFromSchema
-		funcSqlFor = GetSqlForTable
-	} else if objType == "view" {
-		funcFromSchema = GetViewsFromSchema
-		funcSqlFor = GetSqlForView
-	} else if objType == "procedure" {
-		funcFromSchema = GetProceduresFromSchema
-		funcSqlFor = GetSqlForProcedure
-	} else if objType == "function" {
-		funcFromSchema = GetFunctionsFromSchema
-		funcSqlFor = GetSqlForFunction
-	} else if objType == "trigger" {
-		funcFromSchema = GetTriggersFromSchema
-		funcSqlFor = GetSqlForTrigger
-	}
-
-	objNames := funcFromSchema(objName)
+	objNames := GetObjectsFromSchema(objType, objName)
 
 	for _, objName := range objNames {
 		dbObject.Name = objName
-		dbObject.Content = funcSqlFor(objName)
+		dbObject.Content = GetSqlForObject(objType, objName)
 		dbObject.Type = objType
 		objects = append(objects, dbObject)
 	}
@@ -118,46 +145,61 @@ func GetObjectsFromSchema(objectType string, objectName string) []string {
 	var results *sql.Rows
 	var searchParameters []interface{}
 
-	query := QUERIES[objectType]
+	query := queriesForSchema[objectType]
 
 	searchParameters = append(searchParameters, "george")
-	if objectName != "" {
-		query += QUERIES_WHERE[objectType]
-		searchParameters = append(searchParameters, objectName)
+
+	if objectType == TABLES {
+		searchParameters = append(searchParameters, "BASE TABLE")
 	}
 
+	if objectType == PROCEDURES {
+		searchParameters = append(searchParameters, "PROCEDURE")
+	}
+
+	if objectType == FUNCTIONS {
+		searchParameters = append(searchParameters, "FUNCTION")
+	}
+
+	if objectName != "" {
+		query += queriesForSchemaWhere[objectType]
+		searchParameters = append(searchParameters, objectName)
+	}
+	fmt.Println(query, searchParameters)
 	results = ExecuteQuery(query, searchParameters...)
 
 	return objectListFromResults(results)
 }
 
-func GetSqlForObject(objectName string, objectType string, query string) string {
+func objectListFromResults(results *sql.Rows) []string {
+	var objctNames []string
 
+	for results.Next() {
+		var objectName string
+		// for each row, scan the result into our tag composite object
+		err := results.Scan(&objectName)
+		if err != nil {
+			panic(err.Error()) // proper error handling instead of panic in your app
+		}
+		objctNames = append(objctNames, objectName)
+	}
+
+	return objctNames
 }
 
-func GetTablesFromSchema(tableName string) []string {
-	whereTableName := ""
-	var results *sql.Rows
-
-	if tableName != "" {
-		whereTableName = " AND TABLE_NAME = ?"
-	}
-
-	sql := "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = ? AND TABLE_SCHEMA = ? " + whereTableName
-
-	if tableName != "" {
-		results = ExecuteQuery(sql, "BASE TABLE", "george", tableName)
-	} else {
-		results = ExecuteQuery(sql, "BASE TABLE", "george")
-	}
-
-	return objectListFromResults(results)
+func GetSqlForObject(objectType string, objectName string) string {
+	funcSqlFor := sqlForFuncs[objectType]
+	return funcSqlFor(objectName)
 }
 
 func GetSqlForTable(tableName string) string {
-	var createStatement CreateTable
 	query := fmt.Sprintf("SHOW CREATE TABLE %s", tableName)
 	result := ExecuteQueryRow(query)
+	return formatResultForTable(result)
+}
+
+func formatResultForTable(result *sql.Row) string {
+	var createStatement CreateTable
 	err := result.Scan(&createStatement.Table, &createStatement.CreateTable)
 	if err != nil {
 		panic(err.Error())
@@ -165,29 +207,14 @@ func GetSqlForTable(tableName string) string {
 	return createStatement.CreateTable
 }
 
-func GetViewsFromSchema(viewName string) []string {
-	whereViewName := ""
-	var results *sql.Rows
-
-	if viewName != "" {
-		whereViewName = " AND TABLE_NAME = ?"
-	}
-
-	sql := "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = ? " + whereViewName
-
-	if viewName != "" {
-		results = ExecuteQuery(sql, "george", viewName)
-	} else {
-		results = ExecuteQuery(sql, "george")
-	}
-
-	return objectListFromResults(results)
-}
-
 func GetSqlForView(viewName string) string {
-	var definition string
 	query := fmt.Sprintf("SELECT VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?")
 	result := ExecuteQueryRow(query, "george", viewName)
+	return formatResultForView(result, viewName)
+}
+
+func formatResultForView(result *sql.Row, viewName string) string {
+	var definition string
 	err := result.Scan(&definition)
 	if err != nil {
 		panic(err.Error())
@@ -219,29 +246,14 @@ func formatQuery(query string) string {
 	return query
 }
 
-func GetProceduresFromSchema(procedureName string) []string {
-	whereName := ""
-	var results *sql.Rows
-
-	if procedureName != "" {
-		whereName = " AND ROUTINE_NAME = ?"
-	}
-
-	sql := "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_TYPE = ?" + whereName
-
-	if procedureName != "" {
-		results = ExecuteQuery(sql, "george", "PROCEDURE", procedureName)
-	} else {
-		results = ExecuteQuery(sql, "george", "PROCEDURE")
-	}
-
-	return objectListFromResults(results)
-}
-
 func GetSqlForProcedure(procedureName string) string {
-	var createDefinition CreateProcedure
 	query := fmt.Sprintf("SHOW CREATE PROCEDURE %s", procedureName)
 	result := ExecuteQueryRow(query)
+	return formatResultForProcedure(result)
+}
+
+func formatResultForProcedure(result *sql.Row) string {
+	var createDefinition CreateProcedure
 	err := result.Scan(
 		&createDefinition.Procedure,
 		&createDefinition.SQLMode,
@@ -268,29 +280,14 @@ func formatProcedure(definition string) string {
 	return definition
 }
 
-func GetFunctionsFromSchema(functionName string) []string {
-	whereName := ""
-	var results *sql.Rows
-
-	if functionName != "" {
-		whereName = " AND ROUTINE_NAME = ?"
-	}
-
-	sql := "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_TYPE = ?" + whereName
-
-	if functionName != "" {
-		results = ExecuteQuery(sql, "george", "FUNCTION", functionName)
-	} else {
-		results = ExecuteQuery(sql, "george", "FUNCTION")
-	}
-
-	return objectListFromResults(results)
-}
-
 func GetSqlForFunction(functionName string) string {
-	var createDefinition CreateFunction
 	query := fmt.Sprintf("SHOW CREATE FUNCTION %s", functionName)
 	result := ExecuteQueryRow(query)
+	return formatResultForFunction(result)
+}
+
+func formatResultForFunction(result *sql.Row) string {
+	var createDefinition CreateFunction
 	err := result.Scan(
 		&createDefinition.Function,
 		&createDefinition.SQLMode,
@@ -317,29 +314,14 @@ func formatFunction(definition string) string {
 	return definition
 }
 
-func GetTriggersFromSchema(triggerName string) []string {
-	whereName := ""
-	var results *sql.Rows
-
-	if triggerName != "" {
-		whereName = " AND TRIGGER_NAME = ?"
-	}
-
-	sql := "SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA = ?" + whereName
-
-	if triggerName != "" {
-		results = ExecuteQuery(sql, "george", triggerName)
-	} else {
-		results = ExecuteQuery(sql, "george")
-	}
-
-	return objectListFromResults(results)
-}
-
 func GetSqlForTrigger(triggerName string) string {
-	var createTrigger CreateTrigger
 	query := "SELECT TRIGGER_NAME, ACTION_STATEMENT, ACTION_TIMING, EVENT_MANIPULATION, EVENT_OBJECT_TABLE, ACTION_ORIENTATION FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA = ? AND TRIGGER_NAME = ?"
 	result := ExecuteQueryRow(query, "george", triggerName)
+	return formatResultForTrigger(result)
+}
+
+func formatResultForTrigger(result *sql.Row) string {
+	var createTrigger CreateTrigger
 	err := result.Scan(
 		&createTrigger.TriggerName,
 		&createTrigger.ActionStatement,
@@ -367,18 +349,62 @@ func formatTrigger(trigger CreateTrigger) string {
 	return definition
 }
 
-func objectListFromResults(results *sql.Rows) []string {
-	var objctNames []string
+func GetSqlForEvent(eventName string) string {
+	query := "SELECT EVENT_NAME, EVENT_DEFINITION, EXECUTE_AT, INTERVAL_VALUE, INTERVAL_FIELD, EVENT_COMMENT, STATUS, ON_COMPLETION, STARTS, ENDS FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA = ? AND EVENT_NAME = ?"
+	result := ExecuteQueryRow(query, "george", eventName)
+	return formatResultForEvent(result)
+}
 
-	for results.Next() {
-		var objectName string
-		// for each row, scan the result into our tag composite object
-		err := results.Scan(&objectName)
-		if err != nil {
-			panic(err.Error()) // proper error handling instead of panic in your app
-		}
-		objctNames = append(objctNames, objectName)
+func formatResultForEvent(result *sql.Row) string {
+	var event CreateEvent
+	err := result.Scan(
+		&event.EventName,
+		&event.EventDefinition,
+		&event.ExecuteAt,
+		&event.IntervalValue,
+		&event.IntervalField,
+		&event.EventComment,
+		&event.Status,
+		&event.OnCompletion,
+		&event.Starts,
+		&event.Ends,
+	)
+
+	if err != nil {
+		panic(err.Error())
 	}
 
-	return objctNames
+	definition := formatEvent(event)
+
+	return definition
+}
+
+func formatEvent(event CreateEvent) string {
+	eventSqlStruct := `CREATE EVENT %s
+	ON SCHEDULE %s
+	%s
+	%s
+	ON COMPLETION %s
+	COMMENT '%s'
+	DO
+	%s;
+	ALTER EVENT %s
+	%s`
+	var starts string = ""
+	var ends string = ""
+
+	schedule := fmt.Sprintf(`EVERY %s %s`, event.IntervalValue, event.IntervalField)
+	if event.ExecuteAt != "" {
+		schedule = fmt.Sprintf(`AT %s`, event.ExecuteAt)
+	}
+
+	if event.Starts != "" {
+		starts = fmt.Sprintf("STARTS '%s'", event.Starts)
+	}
+
+	if event.Ends != "" {
+		ends = fmt.Sprintf("ENDS '%s'", event.Ends)
+	}
+
+	return fmt.Sprintf(eventSqlStruct, event.EventName, schedule, event.OnCompletion, starts, ends, event.EventComment, event.EventDefinition, event.EventName, event.Status)
 }
