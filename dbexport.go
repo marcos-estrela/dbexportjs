@@ -126,6 +126,36 @@ func GetEvents(eventName string) []DbObject {
 	return GetDbObjectsFor(EVENTS, eventName)
 }
 
+func GetAll() []DbObject {
+	var objs []DbObject
+
+	for _, obj := range GetTables("") {
+		objs = append(objs, obj)
+	}
+
+	for _, obj := range GetViews("") {
+		objs = append(objs, obj)
+	}
+
+	for _, obj := range GetProcedures("") {
+		objs = append(objs, obj)
+	}
+
+	for _, obj := range GetFunctions("") {
+		objs = append(objs, obj)
+	}
+
+	for _, obj := range GetTriggers("") {
+		objs = append(objs, obj)
+	}
+
+	for _, obj := range GetEvents("") {
+		objs = append(objs, obj)
+	}
+
+	return objs
+}
+
 func GetDbObjectsFor(objType, objName string) []DbObject {
 	objects := []DbObject{}
 	dbObject := DbObject{}
@@ -165,7 +195,7 @@ func GetObjectsFromSchema(objectType string, objectName string) []string {
 		query += queriesForSchemaWhere[objectType]
 		searchParameters = append(searchParameters, objectName)
 	}
-	fmt.Println(query, searchParameters)
+
 	results = ExecuteQuery(query, searchParameters...)
 
 	return objectListFromResults(results)

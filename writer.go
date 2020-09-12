@@ -10,6 +10,32 @@ import (
 	"strings"
 )
 
+func replaceNewLine(content string) string {
+	strings.ReplaceAll(content, "^M", "")
+	lines := strings.Split(content, "\r\n")
+	return strings.Join(lines, "\n")
+}
+
+func SaveDbObjects(dbObjects []DbObject) []string {
+	var savedFiles []string
+
+	for i := range dbObjects {
+		dbObject := dbObjects[i]
+		filePath := makeDbObjectPath(dbObject)
+		if WriteSqlToFile(filePath, dbObject.Content) {
+			savedFiles = append(savedFiles, filePath)
+		}
+	}
+
+	return savedFiles
+}
+
+func makeDbObjectPath(dbObject DbObject) string {
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filename))
+	return dir + "/export/" + dbObject.Type + "/" + dbObject.Name + ".sql"
+}
+
 func WriteSqlToFile(filePath, sql string) bool {
 	content := replaceNewLine(sql)
 	byteContent := []byte(content)
@@ -27,30 +53,4 @@ func WriteSqlToFile(filePath, sql string) bool {
 	}
 
 	return true
-}
-
-func replaceNewLine(content string) string {
-	strings.ReplaceAll(content, "^M", "")
-	lines := strings.Split(content, "\r\n")
-	return strings.Join(lines, "\n")
-}
-
-func SaveDbObjects(dbObjects []DbObject) []string {
-	var savedFiles []string
-
-	for i := range dbObjects {
-		dbObject := dbObjects[i]
-		filePath := makeDbObjectPath(dbObject)
-		if WriteSqlToFile(filePath, dbObject.Content) {
-			savedFiles = append(savedFiles, dbObject.Name)
-		}
-	}
-
-	return savedFiles
-}
-
-func makeDbObjectPath(dbObject DbObject) string {
-	_, filename, _, _ := runtime.Caller(0)
-	dir := path.Join(path.Dir(filename), "..")
-	return dir + "/export/" + dbObject.Type + "/" + dbObject.Name + ".sql"
 }
