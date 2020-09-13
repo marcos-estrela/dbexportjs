@@ -1,9 +1,25 @@
 package dbexport
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	teardown()
+	os.Exit(code)
+}
+
+func setup() {
+	GetConfig()
+}
+
+func teardown() {
+
+}
 
 // Tests for tables
 func TestGetAllTablesFromSchema(t *testing.T) {

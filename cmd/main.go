@@ -57,6 +57,7 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
+	dbexport.GetConfig()
 	rootCmd.Flags().StringVarP(&objName, "name", "n", "", "nome do objeto no banco")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

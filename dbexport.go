@@ -21,6 +21,7 @@ var queriesForSchema = map[string]string{
 	TRIGGERS:   "SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA = ?",
 	EVENTS:     "SELECT EVENT_NAME FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA = ?",
 }
+
 var queriesForSchemaWhere = map[string]string{
 	TABLES:     " AND TABLE_NAME = ?",
 	VIEWS:      " AND TABLE_NAME = ?",
